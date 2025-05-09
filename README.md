@@ -9,6 +9,7 @@ Dive into a world of psychedelic visuals with "TAKE A TRIP!" This web applicatio
 *   **Real-time Effects:** Watch your webcam feed transform instantly.
 *   **Interactive Controls:** Fine-tune the visual experience with intuitive sliders.
 *   **Datamosh-inspired Trails:** Create ghostly trails and motion blurs.
+*   **Record the Results:** Capture trippy videos to share.
 *   **Dynamic Hue Shifting:** Cycle through vibrant colors.
 *   **Motion Detection Effects:** Visuals react to movement.
 *   **Frame History Blending:** Blend past frames for temporal distortions.
@@ -39,7 +40,6 @@ Dive into a world of psychedelic visuals with "TAKE A TRIP!" This web applicatio
 *   More diverse shader effects.
 *   Audio reactivity.
 *   Ability to save and load presets.
-*   Option to record the output.
 
 ---
 
