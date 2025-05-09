@@ -1,6 +1,6 @@
 # TAKE A TRIP! - Real-time Webcam "Datamosh"
 
-![TAKE A TRIP! Screenshot](demo.mp4)
+<video src='demo.mp4' width=1200/>
 
 Dive into a world of psychedelic visuals with "TAKE A TRIP!" This web application uses your webcam feed and applies real-time trippy effects directly in your browser, powered by WebGL shaders.
 
