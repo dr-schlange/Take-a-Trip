@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
-<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0X4PB1JR3C"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -46,7 +44,7 @@
         }
         canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
         #errorMessage { position: absolute; top: 10px; left: 10px; background-color: rgba(255, 0, 100, 0.9); padding: 12px; border-radius: 6px; display: none; z-index: 1001; color: white; font-size: 14px; box-shadow: 0 0 20px rgba(255,0,100,0.7); }
-        #webcamVideo { position: absolute; top: -9999px; left: -9999px; } /* Used for webcam */
+        #webcamVideo { position: absolute; top: -9999px; left: -9999px; } 
 
         #controls {
             position: absolute; bottom: 10px; left: 10px;
@@ -77,7 +75,7 @@
          #headerButtons {
             display: flex;
             align-items: center;
-            gap: 8px; /* Spacing between record, switch, and minimize buttons */
+            gap: 8px; 
         }
 
 
@@ -85,7 +83,7 @@
             font-weight: 700;
             font-size: 18px;
             animation: rainbowText 10s linear infinite;
-            margin-right: auto; /* Pushes buttons to the right */
+            margin-right: auto; 
         }
 
         #minimizeButton {
@@ -232,7 +230,7 @@
         }
         #resizeHandle:hover { opacity: 0.8; }
 
-        .record-button { /* Shared style for record and camera switch */
+        .record-button { 
             padding: 0;
             background-color: #282c34;
             border: 1px solid #4f5661;
@@ -246,7 +244,7 @@
             transition: background-color 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             flex-shrink: 0;
-            color: #e8e8e8; /* Icon color */
+            color: #e8e8e8; 
         }
         .record-button:hover {
             background-color: #3a3f47;
@@ -295,10 +293,10 @@
             <span id="controlsTitle">TAKE A TRIP!</span>
             <div id="headerButtons">
                 <button id="recordButton" class="record-button" title="Start Recording">
-                     <!-- SVG will be injected by JS -->
+                     
                 </button>
                 <button id="switchCameraButton" class="record-button" title="Switch Camera" style="display: none;">
-                    <!-- SVG will be injected by JS -->
+                    
                 </button>
                 <button id="minimizeButton" title="Minimize Controls">
                     <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
@@ -366,14 +364,14 @@
         const fsPassthroughSource = ` precision mediump float; varying vec2 v_texCoord; uniform sampler2D u_textureToDraw; void main() { gl_FragColor = texture2D(u_textureToDraw, v_texCoord); } `;
 
         const canvas = document.getElementById('outputCanvas'); 
-        const video = document.getElementById('webcamVideo'); // This <video> element is for the webcam
+        const video = document.getElementById('webcamVideo'); 
         const errorMessageDiv = document.getElementById('errorMessage');
         
         let gl; let shaderProgram; let passthroughProgram;
         let positionBuffer; let texCoordBuffer; 
-        let mediaReady = false; // Generic flag for webcam or file readiness
+        let mediaReady = false; 
         let startTime = performance.now(); let renderLoopId = null;
-        let fbo1, fbo2, fboCopy; let fbTexture1, fbTexture2; let currentSourceFBO, currentDestFBO; let currentSourceTexture, currentDestTexture; let webcamTexture; // This GL texture holds current input (webcam or file)
+        let fbo1, fbo2, fboCopy; let fbTexture1, fbTexture2; let currentSourceFBO, currentDestFBO; let currentSourceTexture, currentDestTexture; let webcamTexture; 
         let frameCount = 0; let isFrozen = false; let frozenFrameTextures = []; const MAX_HISTORY_LENGTH = 16; let frameHistoryTextures = []; let historyWriteIndex = 0;
         let controlValues = { trail: 0.9, motion: 0.12, hue: 0.0, history: 6, extrap: 0.0 };
 
@@ -395,9 +393,9 @@
         const REC_SVG_SQUARE = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="7" y="7" width="10" height="10" fill="${RECORD_BUTTON_RED}" rx="1"/></svg>`;
         const SWITCH_CAMERA_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
 
-        let currentInputSource = 'webcam'; // 'webcam' or 'file'
-        let uploadedMediaElement = null; // Can be an Image or Video element
-        let currentFacingMode = 'user'; // 'user' or 'environment'
+        let currentInputSource = 'webcam'; 
+        let uploadedMediaElement = null; 
+        let currentFacingMode = 'user'; 
         let isResizing = false; let startX, startY, startWidth, startHeight;
 
 
@@ -415,7 +413,7 @@
         function copyTexture(sourceTexture, destTexture) { if (!gl || !passthroughProgram || !fboCopy || !positionBuffer || !texCoordBuffer) { return; } gl.bindFramebuffer(gl.FRAMEBUFFER, fboCopy); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, destTexture, 0); gl.viewport(0, 0, canvas.width, canvas.height); gl.useProgram(passthroughProgram); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sourceTexture); gl.uniform1i(passthroughProgram.uTextureToDrawLoc, 0); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.vertexAttribPointer(passthroughProgram.aPosLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aPosLoc); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.vertexAttribPointer(passthroughProgram.aTexLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aTexLoc); gl.drawArrays(gl.TRIANGLES, 0, 6); gl.bindFramebuffer(gl.FRAMEBUFFER, null); }
         
         function initFramebuffersAndTextures(width, height) {
-            // Delete old textures if they exist
+            
             if (fbTexture1) gl.deleteTexture(fbTexture1);
             if (fbTexture2) gl.deleteTexture(fbTexture2);
             if (webcamTexture) gl.deleteTexture(webcamTexture);
@@ -424,7 +422,7 @@
             
             fbTexture1 = createAndSetupTexture(width, height); 
             fbTexture2 = createAndSetupTexture(width, height); 
-            webcamTexture = createAndSetupTexture(width, height); // Source texture for webcam or file
+            webcamTexture = createAndSetupTexture(width, height); 
             
             frameHistoryTextures = []; 
             frozenFrameTextures = []; 
@@ -453,7 +451,7 @@
             gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2); 
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTexture2, 0); 
             
-            fboCopy = gl.createFramebuffer(); // For texture copying
+            fboCopy = gl.createFramebuffer(); 
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1); 
             const status1 = gl.checkFramebufferStatus(gl.FRAMEBUFFER); 
@@ -468,7 +466,7 @@
             currentSourceFBO = fbo2; currentDestFBO = fbo1; 
             currentSourceTexture = fbTexture2; currentDestTexture = fbTexture1; 
             
-            // Clear all newly created textures
+            
             gl.bindFramebuffer(gl.FRAMEBUFFER, fboCopy); 
             [fbTexture1, fbTexture2, webcamTexture, ...frameHistoryTextures].forEach(tex => { 
                 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0); 
@@ -485,7 +483,7 @@
             if (!mediaReady) return false;
             let sourceElement;
             if (currentInputSource === 'webcam') {
-                sourceElement = video; // The <video> element for webcam
+                sourceElement = video; 
                 if (video.paused || video.ended || video.readyState < video.HAVE_ENOUGH_DATA) return false;
             } else if (currentInputSource === 'file' && uploadedMediaElement) {
                 sourceElement = uploadedMediaElement;
@@ -498,8 +496,8 @@
                 return false;
             }
 
-            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); // webcamTexture is the common GL texture for input
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); // Videos & Images from DOM usually need Y-flip for WebGL
+            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); 
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); 
             try {
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceElement);
                 return true;
@@ -559,7 +557,7 @@
             gl.viewport(0, 0, canvas.width, canvas.height); 
             gl.useProgram(shaderProgram); 
             gl.activeTexture(gl.TEXTURE0); 
-            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); // This is the GL texture updated by updateSourceTexture()
+            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); 
             gl.uniform1i(shaderProgram.u_webcamTextureLoc, 0); 
             gl.activeTexture(gl.TEXTURE1); 
             gl.bindTexture(gl.TEXTURE_2D, prevFrameTextureToBind); 
@@ -597,7 +595,7 @@
                 let tempFBO = currentSourceFBO; currentSourceFBO = currentDestFBO; currentDestFBO = tempFBO; 
                 let tempTex = currentSourceTexture; currentSourceTexture = currentDestTexture; currentDestTexture = tempTex; 
             } 
-            const err = gl.getError(); if (err !== gl.NO_ERROR) { /* Error logging suppressed to avoid console spam */ } 
+            const err = gl.getError(); if (err !== gl.NO_ERROR) { /* Error logging suppressed*/ } 
             frameCount++; 
         }
         function renderLoop(now) { drawScene(now); renderLoopId = requestAnimationFrame(renderLoop); }
@@ -613,10 +611,10 @@
             recordedChunks = [];
 
             const mimeTypeOptions = [
-                { mime: 'video/mp4;codecs=hvc1', extension: 'mp4' },  // HEVC/H.265 (Priority 1)
-                { mime: 'video/mp4;codecs=avc1', extension: 'mp4' },  // H.264 (Priority 2)
-                { mime: 'video/mp4', extension: 'mp4' }, // Generic MP4
-                { mime: 'video/webm', extension: 'webm' } // Generic WebM 
+                { mime: 'video/mp4;codecs=hvc1', extension: 'mp4' },  
+                { mime: 'video/mp4;codecs=avc1', extension: 'mp4' },  
+                { mime: 'video/mp4', extension: 'mp4' }, 
+                { mime: 'video/webm', extension: 'webm' } 
             ];
 
             let selectedMimeTypeInfo = null;
@@ -665,7 +663,7 @@
         function downloadVideo() {
             if (recordedChunks.length === 0) { console.warn("No data recorded to download."); return; }
             const actualMimeType = (mediaRecorder && mediaRecorder.mimeType) ? mediaRecorder.mimeType : recordedChunks[0]?.type;
-            let fileExtension = 'mp4'; // Default to mp4 as H.265/H.264 are MP4 containers
+            let fileExtension = 'mp4'; 
             if (actualMimeType) { if (actualMimeType.startsWith('video/webm')) { fileExtension = 'webm'; } }
             else if (recordedChunks[0]?.type?.startsWith('video/webm')) { fileExtension = 'webm'; }
 
@@ -683,13 +681,12 @@
             // Stop any existing media
             mediaReady = false;
             if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); video.srcObject = null; }
-            if (video.src && video.src !== '' && !video.src.startsWith('blob:')) { video.pause(); video.removeAttribute('src'); video.load(); } // Clear if it was a file URL
+            if (video.src && video.src !== '' && !video.src.startsWith('blob:')) { video.pause(); video.removeAttribute('src'); video.load(); } 
 
             if (uploadedMediaElement) {
                 if (uploadedMediaElement.tagName === 'VIDEO') uploadedMediaElement.pause();
                 if (uploadedMediaElement.src) URL.revokeObjectURL(uploadedMediaElement.src);
-                uploadedMediaElement.removeAttribute('src'); // Important for GC
-                // uploadedMediaElement = null; // Keep element for potential reuse or remove it if it was dynamically created
+                uploadedMediaElement.removeAttribute('src'); 
             }
             
             currentInputSource = sourceType;
@@ -700,7 +697,7 @@
                     const constraints = { audio: false, video: { width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 }, facingMode: {exact: facingModeToUse} } };
                     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showError("getUserMedia not supported.", true); return; }
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    currentFacingMode = facingModeToUse; // Update if successful
+                    currentFacingMode = facingModeToUse; 
                     if (!video) { showError("Video element null.", true); return; }
                     video.srcObject = stream;
                     video.onloadedmetadata = () => {
@@ -712,14 +709,14 @@
                             mediaReady = true; startTime = performance.now();
                             if (renderLoopId === null) { frameCount = 0; renderLoopId = requestAnimationFrame(renderLoop); }
                             useWebcamButton.style.display = 'none';
-                            fileUploadInput.value = null; // Clear file input when switching to webcam
+                            fileUploadInput.value = null; 
                         }).catch(err => { showError(`video.play() failed: ${err.name} - ${err.message}`); });
                     };
                     video.onerror = (e) => { showError(`Webcam video error: ${e?.target?.error?.message || 'Unknown'}`); };
                     stream.addEventListener('inactive', () => { showError("Webcam stream inactive.", false); mediaReady = false; if (freezeButton) freezeButton.disabled = true; if (clearFreezeButton) clearFreezeButton.disabled = true; });
                 } catch (err) {
                     showError(`Error accessing webcam (facing: ${facingModeToUse}): ${err.name} - ${err.message}`, err.name !== 'OverconstrainedError');
-                    if (sourceDetail.isSwitching && facingModeToUse !== 'user') { // If 'environment' failed, try 'user'
+                    if (sourceDetail.isSwitching && facingModeToUse !== 'user') { 
                          console.warn("Failed to switch to environment, trying user.")
                          await setupMediaSource('webcam', { facingMode: 'user' });
                     } else if (sourceDetail.isSwitching && facingModeToUse !== 'environment') {
@@ -806,7 +803,7 @@
                 switchCameraButton.style.display = 'none';
             }
             
-            await setupMediaSource('webcam', { facingMode: currentFacingMode }); // Initial webcam attempt
+            await setupMediaSource('webcam', { facingMode: currentFacingMode }); 
         }
         
 
@@ -846,7 +843,7 @@
             if (file) {
                 await setupMediaSource('file', { file: file });
             }
-            // Clear the input value to allow re-selecting the same file
+            
             event.target.value = null; 
         });
 
