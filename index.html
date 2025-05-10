@@ -35,7 +35,7 @@
         }
         canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
         #errorMessage { position: absolute; top: 10px; left: 10px; background-color: rgba(255, 0, 100, 0.9); padding: 12px; border-radius: 6px; display: none; z-index: 1001; color: white; font-size: 14px; box-shadow: 0 0 20px rgba(255,0,100,0.7); }
-        #webcamVideo { position: absolute; top: -9999px; left: -9999px; }
+        #webcamVideo { position: absolute; top: -9999px; left: -9999px; } /* Used for webcam */
 
         #controls {
             position: absolute; bottom: 10px; left: 10px;
@@ -63,11 +63,18 @@
             border-bottom: 1px solid rgba(60, 70, 95, 0.8);
             position: relative; 
         }
+         #headerButtons {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Spacing between record, switch, and minimize buttons */
+        }
+
 
         #controlsTitle {
             font-weight: 700;
             font-size: 18px;
             animation: rainbowText 10s linear infinite;
+            margin-right: auto; /* Pushes buttons to the right */
         }
 
         #minimizeButton {
@@ -214,7 +221,7 @@
         }
         #resizeHandle:hover { opacity: 0.8; }
 
-        .record-button {
+        .record-button { /* Shared style for record and camera switch */
             padding: 0;
             background-color: #282c34;
             border: 1px solid #4f5661;
@@ -228,6 +235,7 @@
             transition: background-color 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             flex-shrink: 0;
+            color: #e8e8e8; /* Icon color */
         }
         .record-button:hover {
             background-color: #3a3f47;
@@ -245,6 +253,25 @@
             display: block;
             margin: auto;
         }
+        #fileUploadInput {
+            background-color: rgba(20, 22, 30, 0.8);
+            color: #e8e8e8;
+            border: 1px solid rgba(80, 90, 120, 0.9);
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 11px;
+            flex-grow: 1;
+        }
+        #fileUploadInput::file-selector-button {
+            background-color: #3a3f47;
+            color: #e8e8e8;
+            border: none;
+            padding: 3px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
     </style>
 </head>
 <body>
@@ -255,12 +282,17 @@
     <div id="controls">
         <div id="controlsHeader">
             <span id="controlsTitle">TAKE A TRIP!</span>
-            <button id="recordButton" class="record-button" title="Start Recording">
-                 <!-- SVG will be injected by JS -->
-            </button>
-            <button id="minimizeButton" title="Minimize Controls">
-                <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-            </button>
+            <div id="headerButtons">
+                <button id="recordButton" class="record-button" title="Start Recording">
+                     <!-- SVG will be injected by JS -->
+                </button>
+                <button id="switchCameraButton" class="record-button" title="Switch Camera" style="display: none;">
+                    <!-- SVG will be injected by JS -->
+                </button>
+                <button id="minimizeButton" title="Minimize Controls">
+                    <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+            </div>
         </div>
         <div id="controlsContent">
             <div class="control-group"> <label for="trailRange">Trail:</label> <input type="range" id="trailRange" min="0.0" max="1.5" step="0.005" value="0.9"> <input type="number" id="trailNumber" step="0.005" value="0.9"> </div>
@@ -274,6 +306,13 @@
                 <button id="clearFreezeButton" class="main-action-button" disabled>Clear Frozen</button>
             </div>
             <button id="randomizeButton" class="main-action-button">Randomize Sliders</button>
+            
+            <div class="control-group" style="margin-top: 10px;">
+                <label for="fileUploadInput" style="flex-basis: auto; margin-right: 5px; white-space: nowrap;">Upload:</label>
+                <input type="file" id="fileUploadInput" accept="image/*,video/*">
+            </div>
+            <button id="useWebcamButton" class="main-action-button" style="display: none; margin-top: 5px;">Use Webcam</button>
+
         </div>
         <div id="resizeHandle"></div>
     </div>
@@ -291,7 +330,7 @@
             float hue2rgb(float p, float q, float t) { if(t < 0.0) t += 1.0; if(t > 1.0) t -= 1.0; if(t < 1.0/6.0) return p + (q - p) * 6.0 * t; if(t < 1.0/2.0) return q; if(t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0; return p; }
             vec3 hsl2rgb(vec3 hsl) { float h = hsl.x; float s = hsl.y; float l = hsl.z; float r, g, b; if(s == 0.0){ r = g = b = l; } else { float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s; float p = 2.0 * l - q; r = hue2rgb(p, q, h + 1.0/3.0); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1.0/3.0); } return vec3(r, g, b); }
             void main() {
-                vec2 mirroredTexCoord = vec2(1.0 - v_texCoord.x, v_texCoord.y);
+                vec2 mirroredTexCoord = vec2(1.0 - v_texCoord.x, v_texCoord.y); // Horizontal flip
                 vec4 currentWebcamColor = texture2D(u_webcamTexture, mirroredTexCoord);
                 vec4 previousOrStaticColor = texture2D(u_previousFrameTexture, v_texCoord); 
                 float difference = length(currentWebcamColor.rgb - previousOrStaticColor.rgb);
@@ -315,10 +354,15 @@
             }`;
         const fsPassthroughSource = ` precision mediump float; varying vec2 v_texCoord; uniform sampler2D u_textureToDraw; void main() { gl_FragColor = texture2D(u_textureToDraw, v_texCoord); } `;
 
-        const canvas = document.getElementById('outputCanvas'); const video = document.getElementById('webcamVideo'); const errorMessageDiv = document.getElementById('errorMessage');
+        const canvas = document.getElementById('outputCanvas'); 
+        const video = document.getElementById('webcamVideo'); // This <video> element is for the webcam
+        const errorMessageDiv = document.getElementById('errorMessage');
+        
         let gl; let shaderProgram; let passthroughProgram;
-        let positionBuffer; let texCoordBuffer; let videoReady = false; let startTime = performance.now(); let renderLoopId = null;
-        let fbo1, fbo2, fboCopy; let fbTexture1, fbTexture2; let currentSourceFBO, currentDestFBO; let currentSourceTexture, currentDestTexture; let webcamTexture;
+        let positionBuffer; let texCoordBuffer; 
+        let mediaReady = false; // Generic flag for webcam or file readiness
+        let startTime = performance.now(); let renderLoopId = null;
+        let fbo1, fbo2, fboCopy; let fbTexture1, fbTexture2; let currentSourceFBO, currentDestFBO; let currentSourceTexture, currentDestTexture; let webcamTexture; // This GL texture holds current input (webcam or file)
         let frameCount = 0; let isFrozen = false; let frozenFrameTextures = []; const MAX_HISTORY_LENGTH = 16; let frameHistoryTextures = []; let historyWriteIndex = 0;
         let controlValues = { trail: 0.9, motion: 0.12, hue: 0.0, history: 6, extrap: 0.0 };
 
@@ -326,7 +370,11 @@
         const randomizeButton = document.getElementById('randomizeButton');
         const controlsPanel = document.getElementById('controls'); const controlsContent = document.getElementById('controlsContent');
         const minimizeButton = document.getElementById('minimizeButton'); const resizeHandle = document.getElementById('resizeHandle');
+        
         const recordButton = document.getElementById('recordButton'); 
+        const switchCameraButton = document.getElementById('switchCameraButton');
+        const fileUploadInput = document.getElementById('fileUploadInput');
+        const useWebcamButton = document.getElementById('useWebcamButton');
 
         let mediaRecorder;
         let recordedChunks = [];
@@ -334,23 +382,122 @@
         const RECORD_BUTTON_RED = '#FF4136'; 
         const REC_SVG_CIRCLE = `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="7" fill="${RECORD_BUTTON_RED}"/></svg>`;
         const REC_SVG_SQUARE = `<svg viewBox="0 0 24 24" width="16" height="16"><rect x="7" y="7" width="10" height="10" fill="${RECORD_BUTTON_RED}" rx="1"/></svg>`;
+        const SWITCH_CAMERA_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
 
-        if (!canvas || !video || !freezeButton || !clearFreezeButton || !controlsPanel || !resizeHandle || !randomizeButton || !minimizeButton || !controlsContent || !recordButton) {
+        let currentInputSource = 'webcam'; // 'webcam' or 'file'
+        let uploadedMediaElement = null; // Can be an Image or Video element
+        let currentFacingMode = 'user'; // 'user' or 'environment'
+        let isResizing = false; let startX, startY, startWidth, startHeight;
+
+
+        if (!canvas || !video || !freezeButton || !clearFreezeButton || !controlsPanel || !resizeHandle || !randomizeButton || !minimizeButton || !controlsContent || !recordButton || !switchCameraButton || !fileUploadInput || !useWebcamButton) {
             showError("Init Error: Essential UI elements missing!", true); throw new Error("Missing DOM Elements");
         }
 
         function getControlElements(name) { const range = document.getElementById(`${name}Range`); const number = document.getElementById(`${name}Number`); if (!range || !number) { console.error(`Missing control elements for "${name}"`); } if(range && number && !number.hasAttribute('data-synced')) { number.min = range.min; number.max = range.max; number.step = range.step; number.setAttribute('data-synced', 'true');} return { range, number }; }
-        function showError(message, isFatal = true) { console.error(message); if(errorMessageDiv) { errorMessageDiv.textContent = message; errorMessageDiv.style.display = 'block'; } if(isFatal && renderLoopId) cancelAnimationFrame(renderLoopId); renderLoopId = null; }
+        function showError(message, isFatal = true) { console.error(message); if(errorMessageDiv) { errorMessageDiv.textContent = message; errorMessageDiv.style.display = 'block'; setTimeout(() => { if (errorMessageDiv.textContent === message) errorMessageDiv.style.display = 'none'; }, isFatal ? 10000 : 5000); } if(isFatal && renderLoopId) cancelAnimationFrame(renderLoopId); renderLoopId = null; }
         function initWebGL() { gl = canvas.getContext('webgl', { premultipliedAlpha: false, antialias: false }) || canvas.getContext('experimental-webgl', { premultipliedAlpha: false, antialias: false }); if (!gl) { showError('WebGL not supported.'); return false; } return true; }
         function loadShader(type, source) { const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader); if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { showError(`Shader compile error: ${gl.getShaderInfoLog(shader)}`); gl.deleteShader(shader); return null; } return shader; }
         function createShaderProgram(vsSource, fsSource) { const vertexShader = loadShader(gl.VERTEX_SHADER, vsSource); const fragmentShader = loadShader(gl.FRAGMENT_SHADER, fsSource); if (!vertexShader || !fragmentShader) return null; const program = gl.createProgram(); gl.attachShader(program, vertexShader); gl.attachShader(program, fragmentShader); gl.linkProgram(program); if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { showError(`Shader link error: ${gl.getProgramInfoLog(program)}`); gl.deleteProgram(program); gl.deleteShader(vertexShader); gl.deleteShader(fragmentShader); return null; } return program; }
         function initBuffers() { positionBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1.,-1., 1.,-1., -1., 1., -1., 1., 1.,-1., 1., 1.,]), gl.STATIC_DRAW); texCoordBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0.,0., 1.,0., 0.,1., 0.,1., 1.,0., 1.,1.,]), gl.STATIC_DRAW); gl.bindBuffer(gl.ARRAY_BUFFER, null); return true; }
         function createAndSetupTexture(width, height) { if (!gl) return null; const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); } catch (e) { return null; } return tex; }
         function copyTexture(sourceTexture, destTexture) { if (!gl || !passthroughProgram || !fboCopy || !positionBuffer || !texCoordBuffer) { return; } gl.bindFramebuffer(gl.FRAMEBUFFER, fboCopy); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, destTexture, 0); gl.viewport(0, 0, canvas.width, canvas.height); gl.useProgram(passthroughProgram); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sourceTexture); gl.uniform1i(passthroughProgram.uTextureToDrawLoc, 0); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.vertexAttribPointer(passthroughProgram.aPosLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aPosLoc); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.vertexAttribPointer(passthroughProgram.aTexLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aTexLoc); gl.drawArrays(gl.TRIANGLES, 0, 6); gl.bindFramebuffer(gl.FRAMEBUFFER, null); }
-        function initFramebuffers(width, height) { fbTexture1 = createAndSetupTexture(width, height); fbTexture2 = createAndSetupTexture(width, height); webcamTexture = createAndSetupTexture(width, height); frameHistoryTextures.forEach(tex => gl.deleteTexture(tex)); frameHistoryTextures = []; frozenFrameTextures.forEach(tex => gl.deleteTexture(tex)); frozenFrameTextures = []; if (clearFreezeButton) clearFreezeButton.disabled = true; if (freezeButton) freezeButton.textContent = 'Freeze Frame (0)'; if (!fbTexture1 || !fbTexture2 || !webcamTexture) { showError("Failed to create FBO textures.", true); return false; } for (let i = 0; i < MAX_HISTORY_LENGTH; i++) { const historyTex = createAndSetupTexture(width, height); if (!historyTex) { showError(`Failed to create history texture ${i}.`, true); return false; } frameHistoryTextures.push(historyTex); } historyWriteIndex = 0; fbo1 = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTexture1, 0); fbo2 = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTexture2, 0); fboCopy = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1); const status1 = gl.checkFramebufferStatus(gl.FRAMEBUFFER); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2); const status2 = gl.checkFramebufferStatus(gl.FRAMEBUFFER); gl.bindFramebuffer(gl.FRAMEBUFFER, null); if (status1 !== gl.FRAMEBUFFER_COMPLETE || status2 !== gl.FRAMEBUFFER_COMPLETE) { showError(`FBO incomplete.`); return false; } currentSourceFBO = fbo2; currentDestFBO = fbo1; currentSourceTexture = fbTexture2; currentDestTexture = fbTexture1; gl.bindFramebuffer(gl.FRAMEBUFFER, fboCopy); [fbTexture1, fbTexture2, ...frameHistoryTextures].forEach(tex => { gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); }); gl.bindFramebuffer(gl.FRAMEBUFFER, null); return true; }
+        
+        function initFramebuffersAndTextures(width, height) {
+            // Delete old textures if they exist
+            if (fbTexture1) gl.deleteTexture(fbTexture1);
+            if (fbTexture2) gl.deleteTexture(fbTexture2);
+            if (webcamTexture) gl.deleteTexture(webcamTexture);
+            frameHistoryTextures.forEach(tex => gl.deleteTexture(tex));
+            frozenFrameTextures.forEach(tex => gl.deleteTexture(tex));
+            
+            fbTexture1 = createAndSetupTexture(width, height); 
+            fbTexture2 = createAndSetupTexture(width, height); 
+            webcamTexture = createAndSetupTexture(width, height); // Source texture for webcam or file
+            
+            frameHistoryTextures = []; 
+            frozenFrameTextures = []; 
+            if (clearFreezeButton) clearFreezeButton.disabled = true; 
+            if (freezeButton) freezeButton.textContent = 'Freeze Frame (0)'; 
+
+            if (!fbTexture1 || !fbTexture2 || !webcamTexture) { 
+                showError("Failed to create FBO textures.", true); return false; 
+            }
+            for (let i = 0; i < MAX_HISTORY_LENGTH; i++) { 
+                const historyTex = createAndSetupTexture(width, height); 
+                if (!historyTex) { showError(`Failed to create history texture ${i}.`, true); return false; } 
+                frameHistoryTextures.push(historyTex); 
+            } 
+            historyWriteIndex = 0; 
+
+            if (fbo1) gl.deleteFramebuffer(fbo1);
+            if (fbo2) gl.deleteFramebuffer(fbo2);
+            if (fboCopy) gl.deleteFramebuffer(fboCopy);
+
+            fbo1 = gl.createFramebuffer(); 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1); 
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTexture1, 0); 
+            
+            fbo2 = gl.createFramebuffer(); 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2); 
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTexture2, 0); 
+            
+            fboCopy = gl.createFramebuffer(); // For texture copying
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1); 
+            const status1 = gl.checkFramebufferStatus(gl.FRAMEBUFFER); 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2); 
+            const status2 = gl.checkFramebufferStatus(gl.FRAMEBUFFER); 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
+
+            if (status1 !== gl.FRAMEBUFFER_COMPLETE || status2 !== gl.FRAMEBUFFER_COMPLETE) { 
+                showError(`FBO incomplete. Status1: ${status1}, Status2: ${status2}`, true); return false; 
+            } 
+            
+            currentSourceFBO = fbo2; currentDestFBO = fbo1; 
+            currentSourceTexture = fbTexture2; currentDestTexture = fbTexture1; 
+            
+            // Clear all newly created textures
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fboCopy); 
+            [fbTexture1, fbTexture2, webcamTexture, ...frameHistoryTextures].forEach(tex => { 
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0); 
+                gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); 
+            }); 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
+            return true; 
+        }
+
         function setupMainShaderAttributesUniforms() { gl.useProgram(shaderProgram); const pLoc = gl.getAttribLocation(shaderProgram, 'a_position'); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(pLoc); const tLoc = gl.getAttribLocation(shaderProgram, 'a_texCoord'); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.vertexAttribPointer(tLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(tLoc); const uniformNames = [ 'u_webcamTexture', 'u_previousFrameTexture', 'u_time', 'u_motionThreshold', 'u_trailPersistence', 'u_hueShiftSpeed', 'u_motionExtrapolation' ]; let allOk = true; uniformNames.forEach(name => { shaderProgram[name + 'Loc'] = gl.getUniformLocation(shaderProgram, name); if (!shaderProgram[name + 'Loc']) { console.error(`Failed to get uniform: ${name}`); allOk = false; } }); if (!allOk) { showError(`Failed to get shader uniforms.`); return false; } gl.bindBuffer(gl.ARRAY_BUFFER, null); return true; }
         function setupPassthroughShaderAttributesUniforms() { gl.useProgram(passthroughProgram); passthroughProgram.aPosLoc = gl.getAttribLocation(passthroughProgram, 'a_position'); passthroughProgram.aTexLoc = gl.getAttribLocation(passthroughProgram, 'a_texCoord'); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.vertexAttribPointer(passthroughProgram.aPosLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aPosLoc); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.vertexAttribPointer(passthroughProgram.aTexLoc, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(passthroughProgram.aTexLoc); passthroughProgram.uTextureToDrawLoc = gl.getUniformLocation(passthroughProgram, 'u_textureToDraw'); if (!passthroughProgram.uTextureToDrawLoc || passthroughProgram.aPosLoc < 0 || passthroughProgram.aTexLoc < 0) { showError(`Failed to get passthrough uniforms.`); return false; } gl.bindBuffer(gl.ARRAY_BUFFER, null); return true; }
-        function updateWebcamTexture() { if (!videoReady || video.paused || video.ended || video.readyState < video.HAVE_ENOUGH_DATA) return false; gl.bindTexture(gl.TEXTURE_2D, webcamTexture); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video); return true; } catch (e) { return false; } }
+        
+        function updateSourceTexture() {
+            if (!mediaReady) return false;
+            let sourceElement;
+            if (currentInputSource === 'webcam') {
+                sourceElement = video; // The <video> element for webcam
+                if (video.paused || video.ended || video.readyState < video.HAVE_ENOUGH_DATA) return false;
+            } else if (currentInputSource === 'file' && uploadedMediaElement) {
+                sourceElement = uploadedMediaElement;
+                if (sourceElement.tagName === 'VIDEO') {
+                    if (sourceElement.paused || sourceElement.ended || sourceElement.readyState < sourceElement.HAVE_ENOUGH_DATA) return false;
+                } else { // IMAGE
+                    if (!sourceElement.complete || sourceElement.naturalWidth === 0) return false;
+                }
+            } else {
+                return false;
+            }
+
+            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); // webcamTexture is the common GL texture for input
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); // Videos & Images from DOM usually need Y-flip for WebGL
+            try {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceElement);
+                return true;
+            } catch (e) {
+                console.error("Error updating source texture (texImage2D):", e);
+                return false;
+            }
+        }
+
 
         const controlConfig = {
             trail: { precision: 3, isInt: false }, motion: { precision: 2, isInt: false },
@@ -383,48 +530,103 @@
             updateControlValueFromSlider(name, controlValues[name], precision, isInt);
         }
 
-        function drawScene(time) { if (!gl || !shaderProgram || !passthroughProgram || (!videoReady && !isFrozen) || !frameHistoryTextures.length) return; const webcamTextureUpdated = updateWebcamTexture(); if (!webcamTextureUpdated && !isFrozen && controlValues.history <= 1) return; let prevFrameTextureToBind; if (isFrozen && frozenFrameTextures.length > 0) { let frozenIndex = (frameCount % frozenFrameTextures.length); prevFrameTextureToBind = frozenFrameTextures[frozenIndex]; } else { let historyLength = Math.max(1, Math.min(Math.round(controlValues.history), frameHistoryTextures.length)); let historyReadIndex = (historyWriteIndex - 1 - (frameCount % historyLength) + frameHistoryTextures.length) % frameHistoryTextures.length; prevFrameTextureToBind = frameHistoryTextures[historyReadIndex]; } gl.bindFramebuffer(gl.FRAMEBUFFER, currentDestFBO); gl.viewport(0, 0, canvas.width, canvas.height); gl.useProgram(shaderProgram); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, webcamTexture); gl.uniform1i(shaderProgram.u_webcamTextureLoc, 0); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, prevFrameTextureToBind); gl.uniform1i(shaderProgram.u_previousFrameTextureLoc, 1); const elapsedTime = (performance.now() - startTime) * 0.001; gl.uniform1f(shaderProgram.u_timeLoc, elapsedTime); gl.uniform1f(shaderProgram.u_motionThresholdLoc, controlValues.motion); gl.uniform1f(shaderProgram.u_trailPersistenceLoc, controlValues.trail); gl.uniform1f(shaderProgram.u_hueShiftSpeedLoc, controlValues.hue); gl.uniform1f(shaderProgram.u_motionExtrapolationLoc, controlValues.extrap); gl.drawArrays(gl.TRIANGLES, 0, 6); if (!isFrozen) { copyTexture(currentDestTexture, frameHistoryTextures[historyWriteIndex]); historyWriteIndex = (historyWriteIndex + 1) % frameHistoryTextures.length; } gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight); gl.useProgram(passthroughProgram); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, currentDestTexture); gl.uniform1i(passthroughProgram.uTextureToDrawLoc, 0); gl.enableVertexAttribArray(passthroughProgram.aPosLoc); gl.enableVertexAttribArray(passthroughProgram.aTexLoc); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.vertexAttribPointer(passthroughProgram.aPosLoc, 2, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); gl.vertexAttribPointer(passthroughProgram.aTexLoc, 2, gl.FLOAT, false, 0, 0); gl.clearColor(0.0, 0.0, 0.0, 1.0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES, 0, 6); if (!isFrozen) { let tempFBO = currentSourceFBO; currentSourceFBO = currentDestFBO; currentDestFBO = tempFBO; let tempTex = currentSourceTexture; currentSourceTexture = currentDestTexture; currentDestTexture = tempTex; } const err = gl.getError(); if (err !== gl.NO_ERROR) { /* Error logging suppressed */ } frameCount++; }
+        function drawScene(time) { 
+            if (!gl || !shaderProgram || !passthroughProgram || (!mediaReady && !isFrozen) || !frameHistoryTextures.length) return; 
+            const sourceTextureUpdated = updateSourceTexture(); 
+            if (!sourceTextureUpdated && !isFrozen && controlValues.history <= 1) return; 
+            
+            let prevFrameTextureToBind; 
+            if (isFrozen && frozenFrameTextures.length > 0) { 
+                let frozenIndex = (frameCount % frozenFrameTextures.length); prevFrameTextureToBind = frozenFrameTextures[frozenIndex]; 
+            } else { 
+                let historyLength = Math.max(1, Math.min(Math.round(controlValues.history), frameHistoryTextures.length)); 
+                let historyReadIndex = (historyWriteIndex - 1 - (frameCount % historyLength) + frameHistoryTextures.length) % frameHistoryTextures.length; 
+                prevFrameTextureToBind = frameHistoryTextures[historyReadIndex]; 
+            } 
+            
+            gl.bindFramebuffer(gl.FRAMEBUFFER, currentDestFBO); 
+            gl.viewport(0, 0, canvas.width, canvas.height); 
+            gl.useProgram(shaderProgram); 
+            gl.activeTexture(gl.TEXTURE0); 
+            gl.bindTexture(gl.TEXTURE_2D, webcamTexture); // This is the GL texture updated by updateSourceTexture()
+            gl.uniform1i(shaderProgram.u_webcamTextureLoc, 0); 
+            gl.activeTexture(gl.TEXTURE1); 
+            gl.bindTexture(gl.TEXTURE_2D, prevFrameTextureToBind); 
+            gl.uniform1i(shaderProgram.u_previousFrameTextureLoc, 1); 
+            const elapsedTime = (performance.now() - startTime) * 0.001; 
+            gl.uniform1f(shaderProgram.u_timeLoc, elapsedTime); 
+            gl.uniform1f(shaderProgram.u_motionThresholdLoc, controlValues.motion); 
+            gl.uniform1f(shaderProgram.u_trailPersistenceLoc, controlValues.trail); 
+            gl.uniform1f(shaderProgram.u_hueShiftSpeedLoc, controlValues.hue); 
+            gl.uniform1f(shaderProgram.u_motionExtrapolationLoc, controlValues.extrap); 
+            gl.drawArrays(gl.TRIANGLES, 0, 6); 
+            
+            if (!isFrozen) { 
+                copyTexture(currentDestTexture, frameHistoryTextures[historyWriteIndex]); 
+                historyWriteIndex = (historyWriteIndex + 1) % frameHistoryTextures.length; 
+            } 
+            
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight); 
+            gl.useProgram(passthroughProgram); 
+            gl.activeTexture(gl.TEXTURE0); 
+            gl.bindTexture(gl.TEXTURE_2D, currentDestTexture); 
+            gl.uniform1i(passthroughProgram.uTextureToDrawLoc, 0); 
+            gl.enableVertexAttribArray(passthroughProgram.aPosLoc); 
+            gl.enableVertexAttribArray(passthroughProgram.aTexLoc); 
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); 
+            gl.vertexAttribPointer(passthroughProgram.aPosLoc, 2, gl.FLOAT, false, 0, 0); 
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); 
+            gl.vertexAttribPointer(passthroughProgram.aTexLoc, 2, gl.FLOAT, false, 0, 0); 
+            gl.clearColor(0.0, 0.0, 0.0, 1.0); 
+            gl.clear(gl.COLOR_BUFFER_BIT); 
+            gl.drawArrays(gl.TRIANGLES, 0, 6); 
+            
+            if (!isFrozen) { 
+                let tempFBO = currentSourceFBO; currentSourceFBO = currentDestFBO; currentDestFBO = tempFBO; 
+                let tempTex = currentSourceTexture; currentSourceTexture = currentDestTexture; currentDestTexture = tempTex; 
+            } 
+            const err = gl.getError(); if (err !== gl.NO_ERROR) { /* Error logging suppressed to avoid console spam */ } 
+            frameCount++; 
+        }
         function renderLoop(now) { drawScene(now); renderLoopId = requestAnimationFrame(renderLoop); }
         
         function startRecording() {
             if (!canvas || typeof canvas.captureStream !== 'function') {
-                showError("Recording Error: canvas.captureStream not supported.", false);
-                return;
+                showError("Recording Error: canvas.captureStream not supported.", false); return;
             }
             if (typeof MediaRecorder !== 'function') {
-                showError("Recording Error: MediaRecorder not supported.", false);
-                return;
+                showError("Recording Error: MediaRecorder not supported.", false); return;
             }
             const stream = canvas.captureStream(30); 
             recordedChunks = [];
 
-            // Prioritized list of MIME types and codecs
             const mimeTypeOptions = [
-                { mime: 'video/webm;codecs=av01', extension: 'webm' }, // AV1
-                { mime: 'video/mp4;codecs=hvc1', extension: 'mp4' },  // HEVC/H.265
-                { mime: 'video/webm;codecs=vp9', extension: 'webm' },  // VP9
-                { mime: 'video/mp4;codecs=avc1', extension: 'mp4' },  // H.264
-                { mime: 'video/webm;codecs=vp8', extension: 'webm' },  // VP8
-                { mime: 'video/webm', extension: 'webm' },
-                { mime: 'video/mp4', extension: 'mp4' }
+                { mime: 'video/mp4;codecs=hvc1', extension: 'mp4' },  // HEVC/H.265 (Priority 1)
+                { mime: 'video/mp4;codecs=avc1', extension: 'mp4' },  // H.264 (Priority 2)
+                { mime: 'video/mp4', extension: 'mp4' }, // Generic MP4
+                { mime: 'video/webm', extension: 'webm' } // Generic WebM 
             ];
 
             let selectedMimeTypeInfo = null;
             for (const option of mimeTypeOptions) {
                 if (MediaRecorder.isTypeSupported(option.mime)) {
                     selectedMimeTypeInfo = option;
+                    console.log("Supported MIME type for recording:", option.mime);
                     break;
+                } else {
+                    console.log("Unsupported MIME type for recording:", option.mime);
                 }
             }
 
             if (!selectedMimeTypeInfo) {
-                showError("Recording Error: No suitable video MIME type found.", false);
+                showError("Recording Error: Neither H.265 (HEVC) nor H.264 (AVC) recording is supported. No suitable video MIME type found.", false);
                 return;
             }
 
             const recorderOptions = {
                 mimeType: selectedMimeTypeInfo.mime,
-                videoBitsPerSecond: 8000000, // Target 8 Mbps for higher quality
+                videoBitsPerSecond: 8000000, 
             };
 
             try {
@@ -439,85 +641,165 @@
                 }
             }
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
+            mediaRecorder.ondataavailable = (event) => { if (event.data && event.data.size > 0) { recordedChunks.push(event.data); } };
             mediaRecorder.onstop = downloadVideo; 
-            mediaRecorder.onerror = (event) => {
-                showError(`Recording Error: ${event.error.name} - ${event.error.message}`, false);
-                isRecording = false;
-                if (recordButton) {
-                    recordButton.innerHTML = REC_SVG_CIRCLE;
-                    recordButton.title = "Start Recording";
-                    recordButton.classList.remove('is-recording');
-                }
-            };
+            mediaRecorder.onerror = (event) => { showError(`Recording Error: ${event.error.name} - ${event.error.message}`, false); isRecording = false; if (recordButton) { recordButton.innerHTML = REC_SVG_CIRCLE; recordButton.title = "Start Recording"; recordButton.classList.remove('is-recording'); } };
             mediaRecorder.start();
             isRecording = true;
-            if (recordButton) {
-                recordButton.innerHTML = REC_SVG_SQUARE;
-                recordButton.title = "Stop Recording";
-                recordButton.classList.add('is-recording');
-            }
+            if (recordButton) { recordButton.innerHTML = REC_SVG_SQUARE; recordButton.title = "Stop Recording"; recordButton.classList.add('is-recording'); }
             console.log("Recording started with type: ", mediaRecorder.mimeType, "and options:", recorderOptions);
         }
 
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-            }
-            isRecording = false;
-            if (recordButton) {
-                recordButton.innerHTML = REC_SVG_CIRCLE;
-                recordButton.title = "Start Recording";
-                recordButton.classList.remove('is-recording');
-            }
-            console.log("Recording stopped.");
-        }
-
+        function stopRecording() { if (mediaRecorder && mediaRecorder.state === "recording") { mediaRecorder.stop(); } isRecording = false; if (recordButton) { recordButton.innerHTML = REC_SVG_CIRCLE; recordButton.title = "Start Recording"; recordButton.classList.remove('is-recording'); } console.log("Recording stopped."); }
         function downloadVideo() {
-            if (recordedChunks.length === 0) {
-                console.warn("No data recorded to download.");
-                return;
-            }
-
+            if (recordedChunks.length === 0) { console.warn("No data recorded to download."); return; }
             const actualMimeType = (mediaRecorder && mediaRecorder.mimeType) ? mediaRecorder.mimeType : recordedChunks[0]?.type;
-            let fileExtension = 'webm'; // Default extension
-
-            if (actualMimeType) {
-                if (actualMimeType.startsWith('video/mp4')) {
-                    fileExtension = 'mp4';
-                } else if (actualMimeType.startsWith('video/webm')) {
-                    fileExtension = 'webm';
-                }
-            } else if (recordedChunks[0]?.type?.startsWith('video/mp4')) {
-                fileExtension = 'mp4';
-            }
-
+            let fileExtension = 'mp4'; // Default to mp4 as H.265/H.264 are MP4 containers
+            if (actualMimeType) { if (actualMimeType.startsWith('video/webm')) { fileExtension = 'webm'; } }
+            else if (recordedChunks[0]?.type?.startsWith('video/webm')) { fileExtension = 'webm'; }
 
             const blob = new Blob(recordedChunks, { type: actualMimeType || `video/${fileExtension}` });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `datamosh_trip_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.${fileExtension}`;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            a.style.display = 'none'; a.href = url; a.download = `datamosh_trip_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.${fileExtension}`;
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
             recordedChunks = [];
             console.log("Video download initiated as", a.download, "with MIME type:", actualMimeType);
         }
 
-        async function main() { if (!errorMessageDiv) { return; } if (!initWebGL() || !initBuffers()) { showError("WebGL/Buffer Init Failed.", true); return; } shaderProgram = createShaderProgram(vsSource, fsSource); passthroughProgram = createShaderProgram(vsSource, fsPassthroughSource); if (!shaderProgram || !passthroughProgram) { showError("Shader Program Creation Failed.", true); return; } if (!setupMainShaderAttributesUniforms() || !setupPassthroughShaderAttributesUniforms()) { showError("Shader Setup Failed.", true); return; } try { const constraints = { audio: false, video: { width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 }, facingMode: 'user' } }; if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showError("getUserMedia not supported.", true); return; } const stream = await navigator.mediaDevices.getUserMedia(constraints); if (!video) { showError("Video element null.", true); return; } video.srcObject = stream; video.onloadedmetadata = () => { if (video.videoWidth === 0 || video.videoHeight === 0) { showError("Video dimensions zero.", true); return; } if (!initFramebuffers(video.videoWidth, video.videoHeight)) { showError("FBO/History Init Failed.", true); return; } canvas.width = video.videoWidth; canvas.height = video.videoHeight; gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight); video.play().then(() => { videoReady = true; startTime = performance.now(); if (renderLoopId === null) { frameCount=0; renderLoopId = requestAnimationFrame(renderLoop); } }).catch(err => { showError(`video.play() failed: ${err.name} - ${err.message}`); }); }; video.onerror = (e) => { showError(`Video error.`); }; stream.addEventListener('inactive', () => { showError("Webcam stream inactive.", false); videoReady = false; if (freezeButton) freezeButton.disabled = true; if (clearFreezeButton) clearFreezeButton.disabled = true; }); } catch (err) { if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') { showError(`Video resolution not supported.`, false); } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') { showError(`Camera Permission Denied.`, true); } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') { showError(`No camera found.`, true); } else { showError(`Error accessing webcam.`, true); } } }
+        async function setupMediaSource(sourceType, sourceDetail = {}) {
+            // Stop any existing media
+            mediaReady = false;
+            if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); video.srcObject = null; }
+            if (video.src && video.src !== '' && !video.src.startsWith('blob:')) { video.pause(); video.removeAttribute('src'); video.load(); } // Clear if it was a file URL
 
-        Object.keys(controlConfig).forEach(name => { if (controlValues.hasOwnProperty(name)) { setupControl(name); } });
+            if (uploadedMediaElement) {
+                if (uploadedMediaElement.tagName === 'VIDEO') uploadedMediaElement.pause();
+                if (uploadedMediaElement.src) URL.revokeObjectURL(uploadedMediaElement.src);
+                uploadedMediaElement.removeAttribute('src'); // Important for GC
+                // uploadedMediaElement = null; // Keep element for potential reuse or remove it if it was dynamically created
+            }
+            
+            currentInputSource = sourceType;
 
-        freezeButton.addEventListener('click', () => { if (!gl || (!videoReady && !isFrozen) || !currentDestTexture) return; isFrozen = true; const frozenTexture = createAndSetupTexture(canvas.width, canvas.height); if (!frozenTexture) { return; } copyTexture(currentDestTexture, frozenTexture); frozenFrameTextures.push(frozenTexture); freezeButton.textContent = `Freeze Frame (${frozenFrameTextures.length})`; clearFreezeButton.disabled = false; });
+            if (sourceType === 'webcam') {
+                const facingModeToUse = sourceDetail.facingMode || currentFacingMode;
+                try {
+                    const constraints = { audio: false, video: { width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 }, facingMode: {exact: facingModeToUse} } };
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showError("getUserMedia not supported.", true); return; }
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    currentFacingMode = facingModeToUse; // Update if successful
+                    if (!video) { showError("Video element null.", true); return; }
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        if (video.videoWidth === 0 || video.videoHeight === 0) { showError("Webcam video dimensions zero.", true); return; }
+                        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                        if (!initFramebuffersAndTextures(canvas.width, canvas.height)) { showError("FBO/History Init Failed for webcam.", true); return; }
+                        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+                        video.play().then(() => {
+                            mediaReady = true; startTime = performance.now();
+                            if (renderLoopId === null) { frameCount = 0; renderLoopId = requestAnimationFrame(renderLoop); }
+                            useWebcamButton.style.display = 'none';
+                            fileUploadInput.value = null; // Clear file input when switching to webcam
+                        }).catch(err => { showError(`video.play() failed: ${err.name} - ${err.message}`); });
+                    };
+                    video.onerror = (e) => { showError(`Webcam video error: ${e?.target?.error?.message || 'Unknown'}`); };
+                    stream.addEventListener('inactive', () => { showError("Webcam stream inactive.", false); mediaReady = false; if (freezeButton) freezeButton.disabled = true; if (clearFreezeButton) clearFreezeButton.disabled = true; });
+                } catch (err) {
+                    showError(`Error accessing webcam (facing: ${facingModeToUse}): ${err.name} - ${err.message}`, err.name !== 'OverconstrainedError');
+                    if (sourceDetail.isSwitching && facingModeToUse !== 'user') { // If 'environment' failed, try 'user'
+                         console.warn("Failed to switch to environment, trying user.")
+                         await setupMediaSource('webcam', { facingMode: 'user' });
+                    } else if (sourceDetail.isSwitching && facingModeToUse !== 'environment') {
+                        console.warn("Failed to switch to user, trying environment.")
+                        await setupMediaSource('webcam', { facingMode: 'environment' });
+                    }
+                }
+            } else if (sourceType === 'file') {
+                const file = sourceDetail.file;
+                if (!file) { showError("No file provided for file source.", false); return; }
+                const objectURL = URL.createObjectURL(file);
+
+                if (file.type.startsWith('image/')) {
+                    if (!uploadedMediaElement || uploadedMediaElement.tagName !== 'IMG') {
+                        uploadedMediaElement = new Image();
+                    }
+                    uploadedMediaElement.onload = () => {
+                        if (uploadedMediaElement.naturalWidth === 0 || uploadedMediaElement.naturalHeight === 0) { showError("Uploaded image has zero dimensions.", false); URL.revokeObjectURL(objectURL); return; }
+                        canvas.width = uploadedMediaElement.naturalWidth; canvas.height = uploadedMediaElement.naturalHeight;
+                        if (!initFramebuffersAndTextures(canvas.width, canvas.height)) { showError("FBO init failed for uploaded image.", true); URL.revokeObjectURL(objectURL); return; }
+                        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+                        mediaReady = true; startTime = performance.now();
+                        if (renderLoopId === null) { requestAnimationFrame(renderLoop); }
+                        useWebcamButton.style.display = 'block';
+                    };
+                    uploadedMediaElement.onerror = () => { showError("Error loading uploaded image.", false); URL.revokeObjectURL(objectURL); setupMediaSource('webcam'); };
+                    uploadedMediaElement.src = objectURL;
+                } else if (file.type.startsWith('video/')) {
+                    if (!uploadedMediaElement || uploadedMediaElement.tagName !== 'VIDEO') {
+                        uploadedMediaElement = document.createElement('video');
+                        uploadedMediaElement.autoplay = true; uploadedMediaElement.muted = true; uploadedMediaElement.playsInline = true;
+                    }
+                    uploadedMediaElement.loop = true;
+                    uploadedMediaElement.onloadedmetadata = () => {
+                        if (uploadedMediaElement.videoWidth === 0 || uploadedMediaElement.videoHeight === 0) { showError("Uploaded video has zero dimensions.", false); URL.revokeObjectURL(objectURL); return; }
+                        canvas.width = uploadedMediaElement.videoWidth; canvas.height = uploadedMediaElement.videoHeight;
+                        if (!initFramebuffersAndTextures(canvas.width, canvas.height)) { showError("FBO init failed for uploaded video.", true); URL.revokeObjectURL(objectURL); return; }
+                        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+                        uploadedMediaElement.play().then(() => {
+                            mediaReady = true; startTime = performance.now();
+                            if (renderLoopId === null) { requestAnimationFrame(renderLoop); }
+                            useWebcamButton.style.display = 'block';
+                        }).catch(err => { showError(`Uploaded video play failed: ${err.message}`, false); URL.revokeObjectURL(objectURL); });
+                    };
+                    uploadedMediaElement.onerror = (e) => { showError(`Uploaded video error: ${e.target.error?.message || 'Unknown error'}`, false); URL.revokeObjectURL(objectURL); setupMediaSource('webcam'); };
+                    uploadedMediaElement.src = objectURL;
+                } else {
+                    showError("Unsupported file type. Please upload an image or video.", false);
+                    URL.revokeObjectURL(objectURL);
+                    setupMediaSource('webcam'); // Fallback
+                }
+            }
+        }
+
+
+        async function main() { 
+            if (!errorMessageDiv) { return; } 
+            if (!initWebGL() || !initBuffers()) { showError("WebGL/Buffer Init Failed.", true); return; } 
+            shaderProgram = createShaderProgram(vsSource, fsSource); 
+            passthroughProgram = createShaderProgram(vsSource, fsPassthroughSource); 
+            if (!shaderProgram || !passthroughProgram) { showError("Shader Program Creation Failed.", true); return; } 
+            if (!setupMainShaderAttributesUniforms() || !setupPassthroughShaderAttributesUniforms()) { showError("Shader Setup Failed.", true); return; } 
+
+            Object.keys(controlConfig).forEach(name => { if (controlValues.hasOwnProperty(name)) { setupControl(name); } });
+            
+            recordButton.innerHTML = REC_SVG_CIRCLE;
+            switchCameraButton.innerHTML = SWITCH_CAMERA_SVG;
+
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0 && window.matchMedia("(pointer:coarse)").matches);
+            if (isMobile && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                    if (videoInputs.length > 1) {
+                        switchCameraButton.style.display = 'flex';
+                    } else {
+                        switchCameraButton.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.warn("Could not enumerate devices:", err);
+                    switchCameraButton.style.display = 'none';
+                }
+            } else {
+                switchCameraButton.style.display = 'none';
+            }
+            
+            await setupMediaSource('webcam', { facingMode: currentFacingMode }); // Initial webcam attempt
+        }
+        
+
+        freezeButton.addEventListener('click', () => { if (!gl || (!mediaReady && !isFrozen) || !currentDestTexture) return; isFrozen = true; const frozenTexture = createAndSetupTexture(canvas.width, canvas.height); if (!frozenTexture) { return; } copyTexture(currentDestTexture, frozenTexture); frozenFrameTextures.push(frozenTexture); freezeButton.textContent = `Freeze Frame (${frozenFrameTextures.length})`; clearFreezeButton.disabled = false; });
         clearFreezeButton.addEventListener('click', () => { if (!gl) return; isFrozen = false; frozenFrameTextures.forEach(tex => gl.deleteTexture(tex)); frozenFrameTextures = []; freezeButton.textContent = 'Freeze Frame (0)'; clearFreezeButton.disabled = true; });
         
         randomizeButton.addEventListener('click', () => {
@@ -527,14 +809,9 @@
                 const config = controlConfig[controlName];
                 const { range, number } = getControlElements(controlName);
                 if (!range || !number || !config) { return; }
-                const minVal = parseFloat(range.min);
-                const maxVal = parseFloat(range.max);
-                const stepVal = parseFloat(range.step) || 0.01;
+                const minVal = parseFloat(range.min); const maxVal = parseFloat(range.max); const stepVal = parseFloat(range.step) || 0.01;
                 if (isNaN(minVal) || isNaN(maxVal) || isNaN(stepVal) || stepVal <= 0 || minVal > maxVal) { return; }
-                if (minVal === maxVal) {
-                    updateControlValueFromSlider(controlName, minVal, config.precision, config.isInt);
-                    return;
-                }
+                if (minVal === maxVal) { updateControlValueFromSlider(controlName, minVal, config.precision, config.isInt); return; }
                 const numSteps = Math.round((maxVal - minVal) / stepVal);
                 const randomStepIndex = Math.floor(Math.random() * (numSteps + 1));
                 let randomValue = minVal + randomStepIndex * stepVal;
@@ -543,55 +820,45 @@
             });
         });
 
-        if (recordButton) {
-            recordButton.innerHTML = REC_SVG_CIRCLE; 
-            recordButton.addEventListener('click', () => {
-                if (!videoReady && !isFrozen) { 
-                    showError("Webcam not ready and no frozen content. Cannot record.", false);
-                    return;
-                }
-                if (isRecording) { stopRecording(); } else { startRecording(); }
-            });
-        }
+        recordButton.addEventListener('click', () => {
+            if (!mediaReady && !isFrozen) { showError("Media not ready and no frozen content. Cannot record.", false); return; }
+            if (isRecording) { stopRecording(); } else { startRecording(); }
+        });
+
+        switchCameraButton.addEventListener('click', async () => {
+            const newFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            await setupMediaSource('webcam', { facingMode: newFacingMode, isSwitching: true });
+        });
+
+        fileUploadInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                await setupMediaSource('file', { file: file });
+            }
+            // Clear the input value to allow re-selecting the same file
+            event.target.value = null; 
+        });
+
+        useWebcamButton.addEventListener('click', async () => {
+            await setupMediaSource('webcam', { facingMode: currentFacingMode });
+        });
+
 
         resizeHandle.addEventListener('mousedown', (e) => { if (controlsPanel.classList.contains('minimized')) return; isResizing = true; startX = e.clientX; startY = e.clientY; startWidth = controlsPanel.offsetWidth; startHeight = controlsPanel.offsetHeight; controlsPanel.style.userSelect = 'none'; controlsPanel.style.pointerEvents = 'none'; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); e.preventDefault(); });
         function handleMouseMove(e) { if (!isResizing) return; const dx = e.clientX - startX; const dy = e.clientY - startY; let newWidth = startWidth + dx; let newHeight = startHeight + dy; newWidth = Math.max(parseInt(controlsPanel.style.minWidth) || 230, newWidth); newHeight = Math.max(parseInt(controlsPanel.style.minHeight) || 150, newHeight); controlsPanel.style.width = `${newWidth}px`; controlsPanel.style.height = `${newHeight}px`; }
-        function handleMouseUp() { 
-            if (isResizing) { 
-                isResizing = false; 
-                controlsPanel.style.userSelect = ''; 
-                controlsPanel.style.pointerEvents = ''; 
-                window.removeEventListener('mousemove', handleMouseMove); 
-                window.removeEventListener('mouseup', handleMouseUp); 
-                if (!controlsPanel.classList.contains('minimized')) {
-                    controlsPanel.dataset.originalHeight = controlsPanel.offsetHeight + 'px'; 
-                }
-            } 
-        }
+        function handleMouseUp() { if (isResizing) { isResizing = false; controlsPanel.style.userSelect = ''; controlsPanel.style.pointerEvents = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); if (!controlsPanel.classList.contains('minimized')) { controlsPanel.dataset.originalHeight = controlsPanel.offsetHeight + 'px'; } } }
         minimizeButton.addEventListener('click', () => { 
             if (controlsPanel.classList.contains('minimized')) { 
                 controlsPanel.classList.remove('minimized'); 
                 minimizeButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>'; 
                 minimizeButton.title = "Minimize Controls"; 
                 controlsPanel.style.height = controlsPanel.dataset.originalHeight || 'auto'; 
-                
-                controlsPanel.addEventListener('transitionend', function onMaximizeEnd(event) {
-                    if (event.target === controlsPanel && event.propertyName === 'height' && !controlsPanel.classList.contains('minimized')) {
-                        controlsPanel.style.height = 'auto'; 
-                    }
-                }, { once: true });
-
+                controlsPanel.addEventListener('transitionend', function onMaximizeEnd(event) { if (event.target === controlsPanel && event.propertyName === 'height' && !controlsPanel.classList.contains('minimized')) { controlsPanel.style.height = 'auto'; controlsPanel.removeEventListener('transitionend', onMaximizeEnd); } }, { once: false }); // Use once:false for safety or manage removal better
                 setTimeout(() => { controlsContent.style.opacity = 1; resizeHandle.style.opacity = 0.4;}, 50); 
             } else { 
-                if (!controlsPanel.dataset.originalHeight || controlsPanel.style.height === 'auto') {
-                     controlsPanel.dataset.originalHeight = controlsPanel.offsetHeight + 'px';
-                }
+                if (!controlsPanel.dataset.originalHeight || controlsPanel.style.height === 'auto') { controlsPanel.dataset.originalHeight = controlsPanel.offsetHeight + 'px'; }
                 controlsPanel.style.height = controlsPanel.offsetHeight + 'px'; 
-                
-                requestAnimationFrame(() => { 
-                    controlsPanel.classList.add('minimized'); 
-                });
-
+                requestAnimationFrame(() => { controlsPanel.classList.add('minimized'); });
                 minimizeButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>'; 
                 minimizeButton.title = "Maximize Controls"; 
                 controlsContent.style.opacity = 0; 
