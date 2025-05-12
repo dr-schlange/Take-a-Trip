@@ -2,7 +2,6 @@
 
 Mess with your webcam or uploaded media in real-time. This is a WebGL-powered visualizer I built for creating trippy glitch art effects directly in your browser.
 
-https://github.com/user-attachments/assets/071abddb-e090-4525-b73b-e44f8ac0beab
 
 ## Core Features
 
