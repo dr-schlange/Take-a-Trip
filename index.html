@@ -533,6 +533,32 @@
                 }
             }
         });
+        // --- WEBSOCKET AUTO-CONFIG ---
+        const parameterConfig = {
+            trail: { min: 0.0, max: 1.5 },
+            motion: { min: 0.0, max: 1.0 },
+            hue: { min: -0.2, max: 0.2 },
+            history: { min: 1, max: 16 },
+            extrap: { min: 0.0, max: 2.0 },
+        }
+        function connectWS() {
+            const ws = new WebSocket(`ws://${window.location.hostname}:6789/tatr/autoconfig`);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    kind: "visual",
+                    parameters: Object.entries(parameterConfig).map(([name, conf]) => { return { name, range: [conf.min, conf.max] } })
+                }));
+            };
+            ws.onmessage = ({ data }) => {
+                const msg = JSON.parse(data);
+                if (controlConfig.hasOwnProperty(msg.on)) {
+                    controlValues[msg.on] = msg.value
+                }
+            };
+            ws.onclose = () => setTimeout(connectWS, 1000);
+            ws.onerror = e => { console.error(e); ws.close(); };
+        };
+        connectWS();
         main();
     </script>
 </body>
